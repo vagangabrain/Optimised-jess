@@ -101,7 +101,7 @@ class Settings(commands.Cog):
         )
         
         view = AFKView(ctx.author.id, ctx.guild.id, current_collection_afk, current_shiny_hunt_afk, self)
-        await ctx.reply(embed=embed, view=view, reference=ctx.message, mention_author=False)
+        await ctx.reply(embed=embed, view=view, mention_author=False)
     
     # Server settings (admin only)
     @commands.command(name="rare-role")
