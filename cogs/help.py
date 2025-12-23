@@ -45,6 +45,12 @@ class Help(commands.Cog):
                 value="`m!help prediction` - Manual Pokemon prediction",
                 inline=False
             )
+            # Add this field to the main help embed
+            embed.add_field(
+                name="⭐ Starboard",
+                value="`m!help starboard` - Configure starboard channels",
+                inline=False
+            )
             
             await ctx.reply(embed=embed, reference=ctx.message, mention_author=False)
             return
@@ -142,6 +148,7 @@ class Help(commands.Cog):
                 value="**(Admin)** Set role to ping for regional Pokemon\nExample: `m!regional-role @Regional`",
                 inline=False
             )
+
             
         elif category in ["prediction", "predict", "pred"]:
             embed = discord.Embed(
