@@ -12,6 +12,9 @@ from utils import (
 )
 from config import POKETWO_USER_ID, PREDICTION_CONFIDENCE
 
+# Hardcoded channel ID where any image will be auto-predicted
+AUTO_PREDICT_CHANNEL_ID = 1453015934393651272  # Set to your channel ID (e.g., 1234567890)
+
 class Prediction(commands.Cog):
     """Pokemon prediction commands and auto-detection"""
     
@@ -206,7 +209,7 @@ class Prediction(commands.Cog):
     
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Handle auto-detection of Poketwo spawns"""
+        """Handle auto-detection of Poketwo spawns and auto-predict channel"""
         # Don't respond to bot's own messages
         if message.author == self.bot.user:
             return
@@ -214,6 +217,45 @@ class Prediction(commands.Cog):
         # Check if predictor is available
         if self.predictor is None:
             return
+        
+        # Auto-predict any image in the designated channel
+        if AUTO_PREDICT_CHANNEL_ID and message.channel.id == AUTO_PREDICT_CHANNEL_ID:
+            # Don't predict Poketwo spawns in auto-predict channel (they'll be handled below)
+            if message.author.id != POKETWO_USER_ID:
+                image_url = await get_image_url_from_message(message)
+                
+                if image_url:
+                    try:
+                        name, confidence = await self.predictor.predict(image_url, self.http_session)
+                        
+                        if name and confidence:
+                            formatted_output = format_pokemon_prediction(name, confidence)
+                            
+                            # Get all ping information concurrently
+                            tasks = [
+                                self.get_shiny_hunters_for_spawn(name, message.guild.id),
+                                self.get_collectors_for_spawn(name, message.guild.id),
+                                self.get_pokemon_ping_info(name, message.guild.id)
+                            ]
+                            
+                            results = await asyncio.gather(*tasks, return_exceptions=True)
+                            hunters, collectors, ping_info = results
+                            
+                            # Handle results safely
+                            if isinstance(hunters, list) and hunters:
+                                formatted_output += f"\nShiny Hunters: {' '.join(hunters)}"
+                            
+                            if isinstance(collectors, list) and collectors:
+                                collector_mentions = " ".join([f"<@{user_id}>" for user_id in collectors])
+                                formatted_output += f"\nCollectors: {collector_mentions}"
+                            
+                            if isinstance(ping_info, str) and ping_info:
+                                formatted_output += f"\n{ping_info}"
+                            
+                            await message.reply(formatted_output)
+                    
+                    except Exception as e:
+                        print(f"Auto-predict channel error: {e}")
         
         # Auto-detect Poketwo spawns
         if message.author.id == POKETWO_USER_ID:
@@ -239,36 +281,35 @@ class Prediction(commands.Cog):
                                     try:
                                         confidence_value = float(confidence_str)
                                         
-                                        # Handle predictions above threshold
-                                        if confidence_value >= PREDICTION_CONFIDENCE:
-                                            formatted_output = format_pokemon_prediction(name, confidence)
-                                            
-                                            # Get all ping information concurrently
-                                            tasks = [
-                                                self.get_shiny_hunters_for_spawn(name, message.guild.id),
-                                                self.get_collectors_for_spawn(name, message.guild.id),
-                                                self.get_pokemon_ping_info(name, message.guild.id)
-                                            ]
-                                            
-                                            results = await asyncio.gather(*tasks, return_exceptions=True)
-                                            hunters, collectors, ping_info = results
-                                            
-                                            # Handle results safely
-                                            if isinstance(hunters, list) and hunters:
-                                                formatted_output += f"\nShiny Hunters: {' '.join(hunters)}"
-                                            
-                                            if isinstance(collectors, list) and collectors:
-                                                collector_mentions = " ".join([f"<@{user_id}>" for user_id in collectors])
-                                                formatted_output += f"\nCollectors: {collector_mentions}"
-                                            
-                                            if isinstance(ping_info, str) and ping_info:
-                                                formatted_output += f"\n{ping_info}"
-                                            
-                                            await message.reply(formatted_output)
+                                        # ALWAYS send the prediction in the spawn channel
+                                        formatted_output = format_pokemon_prediction(name, confidence)
                                         
-                                        # Handle low confidence predictions
-                                        else:
-                                            # Send to low prediction channel if configured
+                                        # Get all ping information concurrently
+                                        tasks = [
+                                            self.get_shiny_hunters_for_spawn(name, message.guild.id),
+                                            self.get_collectors_for_spawn(name, message.guild.id),
+                                            self.get_pokemon_ping_info(name, message.guild.id)
+                                        ]
+                                        
+                                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                                        hunters, collectors, ping_info = results
+                                        
+                                        # Handle results safely
+                                        if isinstance(hunters, list) and hunters:
+                                            formatted_output += f"\nShiny Hunters: {' '.join(hunters)}"
+                                        
+                                        if isinstance(collectors, list) and collectors:
+                                            collector_mentions = " ".join([f"<@{user_id}>" for user_id in collectors])
+                                            formatted_output += f"\nCollectors: {collector_mentions}"
+                                        
+                                        if isinstance(ping_info, str) and ping_info:
+                                            formatted_output += f"\n{ping_info}"
+                                        
+                                        # Send prediction in spawn channel
+                                        await message.reply(formatted_output)
+                                        
+                                        # If low confidence, ALSO send to low prediction channel
+                                        if confidence_value < PREDICTION_CONFIDENCE:
                                             low_channel_id = await self.db.get_low_prediction_channel()
                                             
                                             if low_channel_id:
@@ -295,8 +336,8 @@ class Prediction(commands.Cog):
                                                     view.add_item(jump_button)
                                                     
                                                     await low_channel.send(embed=embed, view=view)
-                                            
-                                            print(f"Low confidence prediction: {name} ({confidence}) in {message.guild.name}")
+                                                
+                                                print(f"Low confidence prediction: {name} ({confidence}) in {message.guild.name}")
                                     
                                     except ValueError:
                                         print(f"Could not parse confidence value: {confidence}")
