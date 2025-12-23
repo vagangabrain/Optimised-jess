@@ -112,6 +112,21 @@
   },
   {
     "dex_number": 6,
+    "name": "Mega Charizard X",
+    "other_names": {
+      "🇯🇵": [
+        "メガリザードンＸ",
+        "Megarizādonx"
+      ],
+      "🇬🇧": "Mega Charizard X",
+      "🇩🇪": "Mega-Glurak X",
+      "🇫🇷": "Méga-Dracaufeu X"
+    },
+    "is_variant": true,
+    "variant_of": "Charizard"
+  },
+  {
+    "dex_number": 6,
     "name": "Mega Charizard Y",
     "other_names": {
       "🇯🇵": [
@@ -2704,7 +2719,10 @@
     "dex_number": 128,
     "name": "Combat Breed Tauros",
     "other_names": {
-      "🇬🇧": "Paldean Tauros"
+      "🇬🇧": [
+        "Paldean Tauros",
+        "Combat Breed Tauros"
+      ]
     },
     "is_variant": true,
     "variant_of": "Tauros",
@@ -2714,7 +2732,10 @@
     "dex_number": 128,
     "name": "Blaze Breed Tauros",
     "other_names": {
-      "🇬🇧": "Paldean Tauros"
+      "🇬🇧": [
+        "Paldean Tauros",
+        "Blaze Breed Tauros"
+      ]
     },
     "is_variant": true,
     "variant_of": "Tauros",
@@ -2724,7 +2745,10 @@
     "dex_number": 128,
     "name": "Aqua Breed Tauros",
     "other_names": {
-      "🇬🇧": "Paldean Tauros"
+      "🇬🇧": [
+        "Paldean Tauros",
+        "Aqua Breed Tauros"
+      ]
     },
     "is_variant": true,
     "variant_of": "Tauros",
@@ -3165,7 +3189,7 @@
     "other_names": {
       "🇯🇵": [
         "メガミュウツーＸ",
-        "Megamyūtsūy"
+        "Megamyūtsūx"
       ],
       "🇬🇧": "Mega Mewtwo X",
       "🇩🇪": "Mega-Mewtu X",
@@ -3995,7 +4019,10 @@
         "Annōn",
         "Unknown"
       ],
-      "🇬🇧": "Unown F",
+      "🇬🇧": [
+        "Unown F",
+        "Unown"
+      ],
       "🇩🇪": "Icognito",
       "🇫🇷": "Zarbi"
     },
@@ -7604,7 +7631,10 @@
     "dex_number": 386,
     "name": "Speed Deoxys",
     "other_names": {
-      "🇯🇵": "Supīdoforumu",
+      "🇯🇵": [
+        "Supīdoforumu",
+        "スピードフォルム"
+      ],
       "🇬🇧": "Speed Deoxys",
       "🇩🇪": "Initiativeform",
       "🇫🇷": "Forme Vitesse"
@@ -7992,7 +8022,10 @@
         "Minomutchi",
         "Minomucchi"
       ],
-      "🇬🇧": "Plant Burmy",
+      "🇬🇧": [
+        "Plant Burmy",
+        "Burmy"
+      ],
       "🇩🇪": "Burmy",
       "🇫🇷": "Cheniti"
     },
@@ -8173,7 +8206,10 @@
         "Cherimu",
         "Cherrim"
       ],
-      "🇬🇧": "Overcast Cherrim",
+      "🇬🇧": [
+        "Overcast Cherrim",
+        "Cherrim"
+      ],
       "🇩🇪": "Kinoso",
       "🇫🇷": "Ceriflor"
     },
@@ -8196,7 +8232,10 @@
         "カラナクシ",
         "Karanakushi"
       ],
-      "🇬🇧": "West Sea Shellos",
+      "🇬🇧": [
+        "West Sea Shellos",
+        "Shellos"
+      ],
       "🇩🇪": "Schalellos",
       "🇫🇷": "Sancoki"
     },
@@ -8220,7 +8259,10 @@
         "Toritodon",
         "Tritodon"
       ],
-      "🇬🇧": "West Sea Gastrodon",
+      "🇬🇧": [
+        "West Sea Gastrodon",
+        "Gastrodon"
+      ],
       "🇩🇪": "Gastrodon",
       "🇫🇷": "Tritosor"
     },
@@ -9215,7 +9257,10 @@
     "dex_number": 479,
     "name": "Rotom Pokédex",
     "other_names": {
-      "🇬🇧": "Rotom Dex"
+      "🇬🇧": [
+        "Rotom Dex",
+        "Rotom Pokédex"
+      ]
     },
     "is_variant": true,
     "variant_of": "Rotom"
@@ -9506,7 +9551,10 @@
         "Aruseusu",
         "Arceus"
       ],
-      "🇬🇧": "Normal Arceus",
+      "🇬🇧": [
+        "Normal Arceus",
+        "Arceus"
+      ],
       "🇩🇪": "Arceus",
       "🇫🇷": "Arceus"
     },
@@ -11168,7 +11216,10 @@
         "シキジカ",
         "Shikijika"
       ],
-      "🇬🇧": "Spring Deerling",
+      "🇬🇧": [
+        "Spring Deerling",
+        "Deerling"
+      ],
       "🇩🇪": "Sesokitz",
       "🇫🇷": "Vivaldaim"
     },
@@ -11209,7 +11260,10 @@
         "メブキジカ",
         "Mebukijika"
       ],
-      "🇬🇧": "Spring Sawsbuck",
+      "🇬🇧": [
+        "Spring Sawsbuck",
+        "Sawsbuck"
+      ],
       "🇩🇪": "Kronjuwild",
       "🇫🇷": "Haydaim"
     },
@@ -12577,7 +12631,10 @@
         "Bibiyon",
         "Viviyon"
       ],
-      "🇬🇧": "Meadow Vivillon",
+      "🇬🇧": [
+        "Meadow Vivillon",
+        "Vivillon"
+      ],
       "🇩🇪": "Vivillon",
       "🇫🇷": "Prismillon"
     },
@@ -12791,7 +12848,10 @@
         "Furabebe",
         "Flabebe"
       ],
-      "🇬🇧": "Red Flabébé",
+      "🇬🇧": [
+        "Red Flabébé",
+        "Flabébé"
+      ],
       "🇩🇪": "Flabébé",
       "🇫🇷": "Flabébé"
     },
@@ -12850,7 +12910,10 @@
         "Furaette",
         "Floette"
       ],
-      "🇬🇧": "Red Floette",
+      "🇬🇧": [
+        "Red Floette",
+        "Floette"
+      ],
       "🇩🇪": "Floette",
       "🇫🇷": "Floette"
     },
@@ -12909,7 +12972,10 @@
         "Furājesu",
         "Florges"
       ],
-      "🇬🇧": "Red Florges",
+      "🇬🇧": [
+        "Red Florges",
+        "Florges"
+      ],
       "🇩🇪": "Florges",
       "🇫🇷": "Florges"
     },
@@ -13841,7 +13907,10 @@
         "Zeruneasu",
         "Xerneas"
       ],
-      "🇬🇧": "Active Xerneas",
+      "🇬🇧": [
+        "Active Xerneas",
+        "Xerneas"
+      ],
       "🇩🇪": "Xerneas",
       "🇫🇷": "Xerneas"
     },
@@ -14421,7 +14490,10 @@
         "Rugarugan",
         "Lugarugan"
       ],
-      "🇬🇧": "Midday Lycanroc",
+      "🇬🇧": [
+        "Midday Lycanroc",
+        "Lycanroc"
+      ],
       "🇩🇪": "Wolwerock",
       "🇫🇷": "Lougaroc"
     },
@@ -14872,7 +14944,10 @@
         "Shiruvadi",
         "Silvady"
       ],
-      "🇬🇧": "Normal Silvally",
+      "🇬🇧": [
+        "Normal Silvally",
+        "Silvally"
+      ],
       "🇩🇪": "Amigento",
       "🇫🇷": "Silvallié"
     },
@@ -15057,7 +15132,10 @@
         "メテノ",
         "Meteno"
       ],
-      "🇬🇧": "Meteor Minior",
+      "🇬🇧": [
+        "Meteor Minior",
+        "Minior"
+      ],
       "🇩🇪": "Meteno",
       "🇫🇷": "Météno"
     },
@@ -16527,7 +16605,10 @@
         "ストリンダー",
         "Sutorindā"
       ],
-      "🇬🇧": "Toxtricity",
+      "🇬🇧": [
+        "Toxtricity",
+        "Amped Toxtricity"
+      ],
       "🇩🇪": "Riffex",
       "🇫🇷": "Salarsen"
     },
@@ -16873,7 +16954,10 @@
         "マホイップ",
         "Mahoippu"
       ],
-      "🇬🇧": "Vanilla Cream Strawberry Sweet Alcremie",
+      "🇬🇧": [
+        "Vanilla Cream Strawberry Sweet Alcremie",
+        "Alcremie"
+      ],
       "🇩🇪": "Pokusan",
       "🇫🇷": "Charmilly"
     },
