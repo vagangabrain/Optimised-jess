@@ -6,10 +6,9 @@ from config import EMBED_COLOR, Emojis
 class AFKView(discord.ui.View):
     """AFK toggle buttons"""
     
-    def __init__(self, user_id, guild_id, collection_afk, shiny_hunt_afk, cog):
+    def __init__(self, user_id, collection_afk, shiny_hunt_afk, cog):
         super().__init__(timeout=300)
         self.user_id = user_id
-        self.guild_id = guild_id
         self.cog = cog
         self.update_buttons(collection_afk, shiny_hunt_afk)
     
@@ -39,8 +38,8 @@ class AFKView(discord.ui.View):
             await interaction.response.send_message("This button is not for you!", ephemeral=True)
             return
         
-        new_collection_afk = await self.cog.db.toggle_collection_afk(self.user_id, self.guild_id)
-        current_shiny_hunt_afk = await self.cog.db.is_shiny_hunt_afk(self.user_id, self.guild_id)
+        new_collection_afk = await self.cog.db.toggle_collection_afk(self.user_id)
+        current_shiny_hunt_afk = await self.cog.db.is_shiny_hunt_afk(self.user_id)
         
         self.update_buttons(new_collection_afk, current_shiny_hunt_afk)
         embed = self._create_afk_embed(new_collection_afk, current_shiny_hunt_afk)
@@ -52,8 +51,8 @@ class AFKView(discord.ui.View):
             await interaction.response.send_message("This button is not for you!", ephemeral=True)
             return
         
-        new_shiny_hunt_afk = await self.cog.db.toggle_shiny_hunt_afk(self.user_id, self.guild_id)
-        current_collection_afk = await self.cog.db.is_collection_afk(self.user_id, self.guild_id)
+        new_shiny_hunt_afk = await self.cog.db.toggle_shiny_hunt_afk(self.user_id)
+        current_collection_afk = await self.cog.db.is_collection_afk(self.user_id)
         
         self.update_buttons(current_collection_afk, new_shiny_hunt_afk)
         embed = self._create_afk_embed(current_collection_afk, new_shiny_hunt_afk)
@@ -66,8 +65,8 @@ class AFKView(discord.ui.View):
         collection_emoji = Emojis.GREY_DOT if collection_afk else Emojis.GREEN_DOT
         
         embed = discord.Embed(
-            title="AFK Status",
-            description=f"✨ ShinyHunt Pings: {shiny_emoji}\n📚 Collection Pings: {collection_emoji}",
+            title="Global AFK Status",
+            description=f"✨ ShinyHunt Pings: {shiny_emoji}\n📚 Collection Pings: {collection_emoji}\n\n*AFK status applies across all servers*",
             color=EMBED_COLOR
         )
         
@@ -87,50 +86,78 @@ class Settings(commands.Cog):
     # User settings
     @commands.command(name="afk")
     async def afk_command(self, ctx):
-        """Toggle AFK status for collection and shiny hunt pings"""
-        current_collection_afk = await self.db.is_collection_afk(ctx.author.id, ctx.guild.id)
-        current_shiny_hunt_afk = await self.db.is_shiny_hunt_afk(ctx.author.id, ctx.guild.id)
+        """Toggle global AFK status for collection and shiny hunt pings"""
+        current_collection_afk = await self.db.is_collection_afk(ctx.author.id)
+        current_shiny_hunt_afk = await self.db.is_shiny_hunt_afk(ctx.author.id)
         
         shiny_emoji = Emojis.GREY_DOT if current_shiny_hunt_afk else Emojis.GREEN_DOT
         collection_emoji = Emojis.GREY_DOT if current_collection_afk else Emojis.GREEN_DOT
         
         embed = discord.Embed(
-            title="AFK Status",
-            description=f"✨ ShinyHunt Pings: {shiny_emoji}\n📚 Collection Pings: {collection_emoji}",
+            title="Global AFK Status",
+            description=f"✨ ShinyHunt Pings: {shiny_emoji}\n📚 Collection Pings: {collection_emoji}\n\n*AFK status applies across all servers*",
             color=EMBED_COLOR
         )
         
-        view = AFKView(ctx.author.id, ctx.guild.id, current_collection_afk, current_shiny_hunt_afk, self)
+        view = AFKView(ctx.author.id, current_collection_afk, current_shiny_hunt_afk, self)
         await ctx.reply(embed=embed, view=view, mention_author=False)
     
     # Server settings (admin only)
     @commands.command(name="rare-role")
     @commands.has_permissions(administrator=True)
-    async def rare_role_command(self, ctx, role: discord.Role):
-        """Set the rare Pokemon ping role for this server"""
-        await self.db.set_rare_role(ctx.guild.id, role.id)
-        await ctx.reply(f"✅ Rare role set to {role.mention}", mention_author=False)
+    async def rare_role_command(self, ctx, role: discord.Role = None):
+        """Set or clear the rare Pokemon ping role for this server
+        
+        Examples:
+            m!rare-role @Role    (set role)
+            m!rare-role none     (clear role)
+        """
+        if role is None:
+            await self.db.set_rare_role(ctx.guild.id, None)
+            await ctx.reply("✅ Rare role cleared", mention_author=False)
+        else:
+            await self.db.set_rare_role(ctx.guild.id, role.id)
+            await ctx.reply(f"✅ Rare role set to {role.mention}", mention_author=False)
     
     @rare_role_command.error
     async def rare_role_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.BadArgument):
-            await ctx.reply("❌ Invalid role mention or ID. Use @role or role ID.", mention_author=False)
+            # Check if user typed "none"
+            if ctx.message.content.lower().endswith(" none"):
+                await self.db.set_rare_role(ctx.guild.id, None)
+                await ctx.reply("✅ Rare role cleared", mention_author=False)
+            else:
+                await ctx.reply("❌ Invalid role mention or ID. Use @role, role ID, or 'none' to clear.", mention_author=False)
     
     @commands.command(name="regional-role")
     @commands.has_permissions(administrator=True)
-    async def regional_role_command(self, ctx, role: discord.Role):
-        """Set the regional Pokemon ping role for this server"""
-        await self.db.set_regional_role(ctx.guild.id, role.id)
-        await ctx.reply(f"✅ Regional role set to {role.mention}", mention_author=False)
+    async def regional_role_command(self, ctx, role: discord.Role = None):
+        """Set or clear the regional Pokemon ping role for this server
+        
+        Examples:
+            m!regional-role @Role    (set role)
+            m!regional-role none     (clear role)
+        """
+        if role is None:
+            await self.db.set_regional_role(ctx.guild.id, None)
+            await ctx.reply("✅ Regional role cleared", mention_author=False)
+        else:
+            await self.db.set_regional_role(ctx.guild.id, role.id)
+            await ctx.reply(f"✅ Regional role set to {role.mention}", mention_author=False)
     
     @regional_role_command.error
     async def regional_role_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
         elif isinstance(error, commands.BadArgument):
-            await ctx.reply("❌ Invalid role mention or ID.", mention_author=False)
+            # Check if user typed "none"
+            if ctx.message.content.lower().endswith(" none"):
+                await self.db.set_regional_role(ctx.guild.id, None)
+                await ctx.reply("✅ Regional role cleared", mention_author=False)
+            else:
+                await ctx.reply("❌ Invalid role mention or ID. Use @role, role ID, or 'none' to clear.", mention_author=False)
     
     @commands.command(name="server-settings")
     async def server_settings_command(self, ctx):
