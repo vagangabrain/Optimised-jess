@@ -38,6 +38,41 @@ class Prediction(commands.Cog):
         """Get HTTP session from bot"""
         return self.bot.http_session
     
+    async def extract_image_url(self, message):
+        """Extract image URL from message with multiple fallback methods"""
+        # Method 1: Check message attachments
+        if message.attachments:
+            for attachment in message.attachments:
+                if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+                    print(f"[AUTO-PREDICT] Found attachment: {attachment.url}")
+                    return attachment.url
+        
+        # Method 2: Check embeds
+        if message.embeds:
+            for embed in message.embeds:
+                if embed.image:
+                    print(f"[AUTO-PREDICT] Found embed image: {embed.image.url}")
+                    return embed.image.url
+                if embed.thumbnail:
+                    print(f"[AUTO-PREDICT] Found embed thumbnail: {embed.thumbnail.url}")
+                    return embed.thumbnail.url
+        
+        # Method 3: Check message content for URLs
+        import re
+        url_pattern = r'https?://[^\s<>"]+?\.(?:png|jpg|jpeg|gif|webp)'
+        urls = re.findall(url_pattern, message.content, re.IGNORECASE)
+        if urls:
+            print(f"[AUTO-PREDICT] Found URL in content: {urls[0]}")
+            return urls[0]
+        
+        # Method 4: Use the utility function as fallback
+        url = await get_image_url_from_message(message)
+        if url:
+            print(f"[AUTO-PREDICT] Found via utility function: {url}")
+            return url
+        
+        return None
+    
     async def get_pokemon_ping_info(self, pokemon_name: str, guild_id: int) -> str:
         """Get ping information for a Pokemon based on its rarity"""
         pokemon_data = load_pokemon_data()
@@ -189,7 +224,7 @@ class Prediction(commands.Cog):
         if not image_url and ctx.message.reference:
             try:
                 replied_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-                image_url = await get_image_url_from_message(replied_message)
+                image_url = await self.extract_image_url(replied_message)
             except discord.NotFound:
                 await ctx.reply("Could not find the replied message.", mention_author=False)
                 return
@@ -223,60 +258,59 @@ class Prediction(commands.Cog):
         if self.predictor is None:
             return
         
-        # Auto-predict any image in the designated channel
+        # Auto-predict any image in the designated channel (INCLUDING POKETWO)
         if AUTO_PREDICT_CHANNEL_ID and message.channel.id == AUTO_PREDICT_CHANNEL_ID:
             print(f"[AUTO-PREDICT] Message detected in auto-predict channel from {message.author}")
             
-            # Don't predict Poketwo spawns in auto-predict channel (they'll be handled below)
-            if message.author.id != POKETWO_USER_ID:
-                image_url = await get_image_url_from_message(message)
-                
-                if image_url:
-                    print(f"[AUTO-PREDICT] Found image URL: {image_url[:50]}...")
-                    try:
-                        name, confidence = await self.predictor.predict(image_url, self.http_session)
-                        
-                        if name and confidence:
-                            print(f"[AUTO-PREDICT] Predicted: {name} ({confidence})")
-                            formatted_output = format_pokemon_prediction(name, confidence)
-                            
-                            # Get all ping information concurrently
-                            tasks = [
-                                self.get_shiny_hunters_for_spawn(name, message.guild.id),
-                                self.get_collectors_for_spawn(name, message.guild.id),
-                                self.get_pokemon_ping_info(name, message.guild.id)
-                            ]
-                            
-                            results = await asyncio.gather(*tasks, return_exceptions=True)
-                            hunters, collectors, ping_info = results
-                            
-                            # Handle results safely
-                            if isinstance(hunters, list) and hunters:
-                                formatted_output += f"\nShiny Hunters: {' '.join(hunters)}"
-                            
-                            if isinstance(collectors, list) and collectors:
-                                collector_mentions = " ".join([f"<@{user_id}>" for user_id in collectors])
-                                formatted_output += f"\nCollectors: {collector_mentions}"
-                            
-                            if isinstance(ping_info, str) and ping_info:
-                                formatted_output += f"\n{ping_info}"
-                            
-                            await message.reply(formatted_output)
-                            print(f"[AUTO-PREDICT] Sent reply successfully")
-                        else:
-                            print(f"[AUTO-PREDICT] Prediction returned None")
+            image_url = await self.extract_image_url(message)
+            
+            if image_url:
+                print(f"[AUTO-PREDICT] Found image URL: {image_url[:100]}...")
+                try:
+                    name, confidence = await self.predictor.predict(image_url, self.http_session)
                     
-                    except Exception as e:
-                        print(f"[AUTO-PREDICT] Error: {e}")
-                        import traceback
-                        traceback.print_exc()
-                else:
-                    print(f"[AUTO-PREDICT] No image found in message")
+                    if name and confidence:
+                        print(f"[AUTO-PREDICT] Predicted: {name} ({confidence})")
+                        formatted_output = format_pokemon_prediction(name, confidence)
+                        
+                        # Get all ping information concurrently
+                        tasks = [
+                            self.get_shiny_hunters_for_spawn(name, message.guild.id),
+                            self.get_collectors_for_spawn(name, message.guild.id),
+                            self.get_pokemon_ping_info(name, message.guild.id)
+                        ]
+                        
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        hunters, collectors, ping_info = results
+                        
+                        # Handle results safely
+                        if isinstance(hunters, list) and hunters:
+                            formatted_output += f"\nShiny Hunters: {' '.join(hunters)}"
+                        
+                        if isinstance(collectors, list) and collectors:
+                            collector_mentions = " ".join([f"<@{user_id}>" for user_id in collectors])
+                            formatted_output += f"\nCollectors: {collector_mentions}"
+                        
+                        if isinstance(ping_info, str) and ping_info:
+                            formatted_output += f"\n{ping_info}"
+                        
+                        await message.reply(formatted_output)
+                        print(f"[AUTO-PREDICT] Sent reply successfully")
+                    else:
+                        print(f"[AUTO-PREDICT] Prediction returned None")
+                
+                except Exception as e:
+                    print(f"[AUTO-PREDICT] Error: {e}")
+                    import traceback
+                    traceback.print_exc()
             else:
-                print(f"[AUTO-PREDICT] Skipping Poketwo message")
+                print(f"[AUTO-PREDICT] No image found in message")
+                print(f"[AUTO-PREDICT] Message content: {message.content[:100]}")
+                print(f"[AUTO-PREDICT] Attachments: {len(message.attachments)}")
+                print(f"[AUTO-PREDICT] Embeds: {len(message.embeds)}")
         
-        # Auto-detect Poketwo spawns
-        if message.author.id == POKETWO_USER_ID:
+        # Auto-detect Poketwo spawns in OTHER channels (not auto-predict channel)
+        elif message.author.id == POKETWO_USER_ID:
             # Check if message has embeds with spawn titles
             if message.embeds:
                 embed = message.embeds[0]
@@ -286,7 +320,7 @@ class Prediction(commands.Cog):
                         (embed.title.endswith("A new wild pokémon has appeared!") and 
                          "fled." in embed.title)):
                         
-                        image_url = await get_image_url_from_message(message)
+                        image_url = await self.extract_image_url(message)
                         
                         if image_url:
                             try:
