@@ -7,6 +7,7 @@ import os
 import json
 import time
 import hashlib
+import asyncio
 from typing import Optional, Tuple
 
 # GitHub raw content URLs for models
@@ -206,46 +207,66 @@ class Prediction:
         return hashlib.md5(url.encode()).hexdigest()
 
     async def preprocess_image(self, url: str, session: aiohttp.ClientSession, 
-                               width=224, height=224):
-        """Async image preprocessing with configurable size
+                               width=224, height=224, max_retries=2):
+        """Async image preprocessing with configurable size and retry logic
         
         Args:
             url: Image URL
             session: aiohttp session
             width: Target width (PIL uses width, height order)
             height: Target height
+            max_retries: Number of retry attempts for transient errors
         """
-        try:
-            timeout = aiohttp.ClientTimeout(total=5, connect=2)
-            async with session.get(url, timeout=timeout) as response:
-                if response.status != 200:
-                    raise ValueError(f"HTTP {response.status} error fetching image")
-                image_data = await response.read()
-        except Exception as e:
-            raise ValueError(f"Failed to load image from URL: {e}")
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                timeout = aiohttp.ClientTimeout(total=5, connect=2)
+                async with session.get(url, timeout=timeout) as response:
+                    if response.status != 200:
+                        # Retry on 404 errors as Discord URLs might be temporarily unavailable
+                        if response.status == 404 and attempt < max_retries - 1:
+                            await asyncio.sleep(0.5)
+                            continue
+                        raise ValueError(f"HTTP {response.status} error fetching image")
+                    
+                    image_data = await response.read()
+                
+                # Try to process the image
+                try:
+                    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                except Exception as e:
+                    raise ValueError(f"Failed to process image: {e}")
 
-        try:
-            image = Image.open(io.BytesIO(image_data)).convert("RGB")
-        except Exception as e:
-            raise ValueError(f"Failed to process image: {e}")
+                # Resize with high quality resampling
+                # PIL.Image.resize takes (width, height) order
+                image = image.resize((width, height), Image.LANCZOS)
 
-        # Resize with high quality resampling
-        # PIL.Image.resize takes (width, height) order
-        image = image.resize((width, height), Image.LANCZOS)
+                # Convert to numpy array and normalize
+                image = np.array(image, dtype=np.float32) / 255.0
 
-        # Convert to numpy array and normalize
-        image = np.array(image, dtype=np.float32) / 255.0
+                # ImageNet normalization
+                mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+                std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+                image = (image - mean) / std
 
-        # ImageNet normalization
-        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-        image = (image - mean) / std
+                # Convert to CHW format and add batch dimension
+                image = np.transpose(image, (2, 0, 1))  # CHW
+                image = np.expand_dims(image, axis=0).astype(np.float32)  # NCHW
 
-        # Convert to CHW format and add batch dimension
-        image = np.transpose(image, (2, 0, 1))  # CHW
-        image = np.expand_dims(image, axis=0).astype(np.float32)  # NCHW
-
-        return image
+                return image
+            
+            except Exception as e:
+                last_error = e
+                # Retry on transient errors
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(0.5)
+                    continue
+                # On final attempt, raise the error
+                raise ValueError(f"Failed to load image from URL: {e}")
+        
+        # This should never be reached, but just in case
+        raise ValueError(f"Failed to load image from URL: {last_error}")
 
     def softmax(self, x):
         """Vectorized softmax computation"""
@@ -346,10 +367,6 @@ class Prediction:
         result = (primary_name, confidence, "primary_fallback")
         self.cache.set(cache_key, result)
         return primary_name, confidence
-
-
-# Import asyncio at module level
-import asyncio
 
 
 def main():
