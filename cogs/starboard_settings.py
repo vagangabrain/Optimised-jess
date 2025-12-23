@@ -371,23 +371,14 @@ class StarboardSettings(commands.Cog):
     
     # Error handlers
     @starboard_all_command.error
-    @starboard_remove_all_command.error
     @starboard_catch_command.error
-    @starboard_catch_remove_command.error
     @starboard_egg_command.error
-    @starboard_egg_remove_command.error
     @starboard_unbox_command.error
-    @starboard_unbox_remove_command.error
     @starboard_shiny_command.error
-    @starboard_shiny_remove_command.error
     @starboard_gigantamax_command.error
-    @starboard_gigantamax_remove_command.error
     @starboard_highiv_command.error
-    @starboard_highiv_remove_command.error
     @starboard_lowiv_command.error
-    @starboard_lowiv_remove_command.error
     @starboard_missingno_command.error
-    @starboard_missingno_remove_command.error
     async def starboard_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
