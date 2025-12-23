@@ -158,7 +158,7 @@ class ShinyHunt(commands.Cog):
             await ctx.reply(f"✅ Now hunting: **{pokemon_to_hunt[0]}**", mention_author=False)
         else:
             hunt_list = ", ".join(f"**{p}**" for p in pokemon_to_hunt)
-            await ctx.reply(f"✅ Now hunting: {hunt_list}", mention_author=False)
+            await ctx.reply(f"✅ Now hunting **{len(pokemon_to_hunt)}** variants: {hunt_list}", mention_author=False)
 
 async def setup(bot):
     await bot.add_cog(ShinyHunt(bot))
