@@ -63,7 +63,7 @@ class Help(commands.Cog):
             
             embed.set_footer(text=f"Bot Prefix: {', '.join(BOT_PREFIX)}")
             
-            await ctx.reply(embed=embed, reference=ctx.message, mention_author=False)
+            await ctx.reply(embed=embed, mention_author=False)
             return
         
         category = category.lower()
@@ -394,7 +394,7 @@ class Help(commands.Cog):
             return
         
         embed.set_footer(text=f"Bot Prefix: {', '.join(BOT_PREFIX)}")
-        await ctx.reply(embed=embed, reference=ctx.message, mention_author=False)
+        await ctx.reply(embed=embed, mention_author=False)
     
     @commands.command(name="about")
     async def about_command(self, ctx):
@@ -457,7 +457,7 @@ class Help(commands.Cog):
         
         embed.set_footer(text=f"Made with ❤️ for the Poketwo community")
         
-        await ctx.reply(embed=embed, reference=ctx.message, mention_author=False)
+        await ctx.reply(embed=embed, mention_author=False)
     
     @commands.command(name="commands", aliases=["cmds"])
     async def commands_command(self, ctx):
