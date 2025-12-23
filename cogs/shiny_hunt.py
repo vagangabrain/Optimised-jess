@@ -157,9 +157,7 @@ class ShinyHunt(commands.Cog):
         if len(pokemon_to_hunt) == 1:
             await ctx.reply(f"✅ Now hunting: **{pokemon_to_hunt[0]}**", mention_author=False)
         else:
-            hunt_list = ", ".join(f"**{p}**" for p in pokemon_to_hunt[:5])
-            if len(pokemon_to_hunt) > 5:
-                hunt_list += f" and **{len(pokemon_to_hunt) - 5}** more"
+            hunt_list = ", ".join(f"**{p}**" for p in pokemon_to_hunt)
             await ctx.reply(f"✅ Now hunting: {hunt_list}", mention_author=False)
 
 async def setup(bot):
