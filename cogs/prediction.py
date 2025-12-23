@@ -113,8 +113,8 @@ class Prediction(commands.Cog):
         # Remove duplicates
         search_names = list(set([normalize_pokemon_name(name) for name in search_names]))
         
-        # Get AFK users
-        afk_users = await self.db.get_collection_afk_users(guild_id)
+        # Get global AFK users
+        afk_users = await self.db.get_collection_afk_users()
         
         # Get collectors
         collectors = await self.db.get_collectors_for_pokemon(guild_id, search_names, afk_users)
@@ -147,8 +147,8 @@ class Prediction(commands.Cog):
         # Remove duplicates
         search_names = list(set([normalize_pokemon_name(name) for name in search_names]))
         
-        # Get AFK users
-        afk_users = await self.db.get_shiny_hunt_afk_users(guild_id)
+        # Get global AFK users
+        afk_users = await self.db.get_shiny_hunt_afk_users()
         
         # Get hunters
         hunters_data = await self.db.get_shiny_hunters_for_pokemon(guild_id, search_names, afk_users)
