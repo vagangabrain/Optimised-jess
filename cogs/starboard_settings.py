@@ -14,6 +14,30 @@ class StarboardSettings(commands.Cog):
         """Get database from bot"""
         return self.bot.db
     
+    # Set all starboard channels at once
+    @commands.command(name="starboard-all")
+    @commands.has_permissions(administrator=True)
+    async def starboard_all_command(self, ctx, channel: discord.TextChannel = None):
+        """Set one channel for all starboard categories
+        
+        Example: m!starboard-all #starboard
+        """
+        if not channel:
+            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            return
+        
+        # Set all starboard channels to the same channel
+        await self.db.set_starboard_catch_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_egg_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_unbox_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_shiny_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_highiv_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_lowiv_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_missingno_channel(ctx.guild.id, channel.id)
+        
+        await ctx.reply(f"✅ All starboard channels set to {channel.mention}", mention_author=False)
+    
     # Server starboard channels (admin only)
     @commands.command(name="starboard-catch")
     @commands.has_permissions(administrator=True)
@@ -235,6 +259,7 @@ class StarboardSettings(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
     
     # Error handlers
+    @starboard_all_command.error
     @starboard_catch_command.error
     @starboard_egg_command.error
     @starboard_unbox_command.error
