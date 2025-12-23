@@ -43,32 +43,33 @@ class Database:
             return False
     
     async def _create_indexes(self):
-        """Create database indexes for better performance"""
-        try:
-            # Collections
-            await self.db.collections.create_index([("user_id", 1), ("guild_id", 1)])
-            await self.db.collections.create_index("pokemon")
+    """Create database indexes for better performance"""
+    try:
+        # Collections
+        await self.db.collections.create_index([("user_id", 1), ("guild_id", 1)])
+        await self.db.collections.create_index("pokemon")
 
-            # Shiny hunts
-            await self.db.shiny_hunts.create_index([("user_id", 1), ("guild_id", 1)])
-            await self.db.shiny_hunts.create_index("pokemon")
+        # Shiny hunts
+        await self.db.shiny_hunts.create_index([("user_id", 1), ("guild_id", 1)])
+        await self.db.shiny_hunts.create_index("pokemon")
 
-            # AFK users
-            await self.db.collection_afk_users.create_index([("user_id", 1), ("guild_id", 1)])
-            await self.db.shiny_hunt_afk_users.create_index([("user_id", 1), ("guild_id", 1)])
+        # AFK users
+        await self.db.collection_afk_users.create_index([("user_id", 1), ("guild_id", 1)])
+        await self.db.shiny_hunt_afk_users.create_index([("user_id", 1), ("guild_id", 1)])
 
-            # Rare pings
-            await self.db.rare_pings.create_index([("user_id", 1), ("guild_id", 1)])
+        # Rare pings
+        await self.db.rare_pings.create_index([("user_id", 1), ("guild_id", 1)])
 
-            # Guild settings
-            await self.db.guild_settings.create_index("guild_id", unique=True)
-            
-            # Global settings
-            await self.db.global_settings.create_index("_id", unique=True)
+        # Guild settings - unique index on guild_id
+        await self.db.guild_settings.create_index("guild_id", unique=True)
+        
+        # Global settings - NO index needed, _id is already unique by default
+        # MongoDB automatically creates a unique index on _id field
+        # So we don't need to create any additional indexes here
 
-            print("✅ Database indexes created")
-        except Exception as e:
-            print(f"Warning: Could not create indexes: {e}")
+        print("✅ Database indexes created")
+    except Exception as e:
+        print(f"Warning: Could not create indexes: {e}")
     
     def close(self):
         """Close database connection"""
