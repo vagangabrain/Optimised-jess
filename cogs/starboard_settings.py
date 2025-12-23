@@ -38,6 +38,26 @@ class StarboardSettings(commands.Cog):
         
         await ctx.reply(f"✅ All starboard channels set to {channel.mention}", mention_author=False)
     
+    # Remove all starboard channels at once
+    @commands.command(name="starboard-remove-all")
+    @commands.has_permissions(administrator=True)
+    async def starboard_remove_all_command(self, ctx):
+        """Remove all starboard channels for this server
+        
+        Example: m!starboard-remove-all
+        """
+        # Remove all starboard channels
+        await self.db.set_starboard_catch_channel(ctx.guild.id, None)
+        await self.db.set_starboard_egg_channel(ctx.guild.id, None)
+        await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
+        await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
+        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
+        await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
+        await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
+        await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
+        
+        await ctx.reply("✅ All starboard channels have been removed", mention_author=False)
+    
     # Server starboard channels (admin only)
     @commands.command(name="starboard-catch")
     @commands.has_permissions(administrator=True)
@@ -45,13 +65,21 @@ class StarboardSettings(commands.Cog):
         """Set the catch starboard channel for this server
         
         Example: m!starboard-catch #catches
+        To remove: m!starboard-catch remove
         """
-        if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+        if channel is None:
+            await ctx.reply("❌ Please mention a channel or provide a channel ID. Use 'remove' to clear the channel.", mention_author=False)
             return
         
         await self.db.set_starboard_catch_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Catch starboard channel set to {channel.mention}", mention_author=False)
+    
+    @commands.command(name="starboard-catch-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_catch_remove_command(self, ctx):
+        """Remove the catch starboard channel for this server"""
+        await self.db.set_starboard_catch_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Catch starboard channel removed", mention_author=False)
     
     @commands.command(name="starboard-egg")
     @commands.has_permissions(administrator=True)
@@ -59,6 +87,7 @@ class StarboardSettings(commands.Cog):
         """Set the egg hatch starboard channel for this server
         
         Example: m!starboard-egg #egg-hatches
+        To remove: m!starboard-egg-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -67,12 +96,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_egg_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Egg starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-egg-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_egg_remove_command(self, ctx):
+        """Remove the egg starboard channel for this server"""
+        await self.db.set_starboard_egg_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Egg starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-unbox")
     @commands.has_permissions(administrator=True)
     async def starboard_unbox_command(self, ctx, channel: discord.TextChannel = None):
         """Set the unbox starboard channel for this server
         
         Example: m!starboard-unbox #unboxes
+        To remove: m!starboard-unbox-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -81,12 +118,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_unbox_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Unbox starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-unbox-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_unbox_remove_command(self, ctx):
+        """Remove the unbox starboard channel for this server"""
+        await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Unbox starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-shiny")
     @commands.has_permissions(administrator=True)
     async def starboard_shiny_command(self, ctx, channel: discord.TextChannel = None):
         """Set the shiny catch starboard channel for this server
         
         Example: m!starboard-shiny #shinies
+        To remove: m!starboard-shiny-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -95,12 +140,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_shiny_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Shiny catch starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-shiny-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_shiny_remove_command(self, ctx):
+        """Remove the shiny starboard channel for this server"""
+        await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Shiny starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-gigantamax")
     @commands.has_permissions(administrator=True)
     async def starboard_gigantamax_command(self, ctx, channel: discord.TextChannel = None):
         """Set the Gigantamax catch starboard channel for this server
         
         Example: m!starboard-gigantamax #gmax
+        To remove: m!starboard-gigantamax-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -109,12 +162,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_gigantamax_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Gigantamax starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-gigantamax-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_gigantamax_remove_command(self, ctx):
+        """Remove the Gigantamax starboard channel for this server"""
+        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Gigantamax starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-highiv")
     @commands.has_permissions(administrator=True)
     async def starboard_highiv_command(self, ctx, channel: discord.TextChannel = None):
         """Set the high IV starboard channel for this server
         
         Example: m!starboard-highiv #high-ivs
+        To remove: m!starboard-highiv-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -123,12 +184,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_highiv_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ High IV starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-highiv-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_highiv_remove_command(self, ctx):
+        """Remove the high IV starboard channel for this server"""
+        await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
+        await ctx.reply("✅ High IV starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-lowiv")
     @commands.has_permissions(administrator=True)
     async def starboard_lowiv_command(self, ctx, channel: discord.TextChannel = None):
         """Set the low IV starboard channel for this server
         
         Example: m!starboard-lowiv #low-ivs
+        To remove: m!starboard-lowiv-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -137,12 +206,20 @@ class StarboardSettings(commands.Cog):
         await self.db.set_starboard_lowiv_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ Low IV starboard channel set to {channel.mention}", mention_author=False)
     
+    @commands.command(name="starboard-lowiv-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_lowiv_remove_command(self, ctx):
+        """Remove the low IV starboard channel for this server"""
+        await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
+        await ctx.reply("✅ Low IV starboard channel removed", mention_author=False)
+    
     @commands.command(name="starboard-missingno")
     @commands.has_permissions(administrator=True)
     async def starboard_missingno_command(self, ctx, channel: discord.TextChannel = None):
         """Set the MissingNo catch starboard channel for this server
         
         Example: m!starboard-missingno #missingno
+        To remove: m!starboard-missingno-remove
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -150,6 +227,13 @@ class StarboardSettings(commands.Cog):
         
         await self.db.set_starboard_missingno_channel(ctx.guild.id, channel.id)
         await ctx.reply(f"✅ MissingNo starboard channel set to {channel.mention}", mention_author=False)
+    
+    @commands.command(name="starboard-missingno-remove")
+    @commands.has_permissions(administrator=True)
+    async def starboard_missingno_remove_command(self, ctx):
+        """Remove the MissingNo starboard channel for this server"""
+        await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
+        await ctx.reply("✅ MissingNo starboard channel removed", mention_author=False)
     
     # Global starboard channels (bot owner only)
     @commands.command(name="global-starboard-catch")
@@ -260,14 +344,23 @@ class StarboardSettings(commands.Cog):
     
     # Error handlers
     @starboard_all_command.error
+    @starboard_remove_all_command.error
     @starboard_catch_command.error
+    @starboard_catch_remove_command.error
     @starboard_egg_command.error
+    @starboard_egg_remove_command.error
     @starboard_unbox_command.error
+    @starboard_unbox_remove_command.error
     @starboard_shiny_command.error
+    @starboard_shiny_remove_command.error
     @starboard_gigantamax_command.error
+    @starboard_gigantamax_remove_command.error
     @starboard_highiv_command.error
+    @starboard_highiv_remove_command.error
     @starboard_lowiv_command.error
+    @starboard_lowiv_remove_command.error
     @starboard_missingno_command.error
+    @starboard_missingno_remove_command.error
     async def starboard_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ You need administrator permissions to use this command.", mention_author=False)
