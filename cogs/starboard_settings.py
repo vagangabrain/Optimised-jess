@@ -17,223 +17,250 @@ class StarboardSettings(commands.Cog):
     # Set all starboard channels at once
     @commands.command(name="starboard-all")
     @commands.has_permissions(administrator=True)
-    async def starboard_all_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_all_command(self, ctx, channel: str = None):
         """Set one channel for all starboard categories
         
         Example: m!starboard-all #starboard
+        To remove all: m!starboard-all none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove all.", mention_author=False)
+            return
+        
+        # Check if user wants to remove all channels
+        if channel.lower() == "none":
+            await self.db.set_starboard_catch_channel(ctx.guild.id, None)
+            await self.db.set_starboard_egg_channel(ctx.guild.id, None)
+            await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
+            await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
+            await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
+            await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
+            await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
+            await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
+            
+            await ctx.reply("✅ All starboard channels have been removed", mention_author=False)
+            return
+        
+        # Try to convert to TextChannel
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
             return
         
         # Set all starboard channels to the same channel
-        await self.db.set_starboard_catch_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_egg_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_unbox_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_shiny_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_highiv_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_lowiv_channel(ctx.guild.id, channel.id)
-        await self.db.set_starboard_missingno_channel(ctx.guild.id, channel.id)
+        await self.db.set_starboard_catch_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_egg_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_unbox_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_shiny_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_highiv_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_lowiv_channel(ctx.guild.id, text_channel.id)
+        await self.db.set_starboard_missingno_channel(ctx.guild.id, text_channel.id)
         
-        await ctx.reply(f"✅ All starboard channels set to {channel.mention}", mention_author=False)
-    
-    # Remove all starboard channels at once
-    @commands.command(name="starboard-remove-all")
-    @commands.has_permissions(administrator=True)
-    async def starboard_remove_all_command(self, ctx):
-        """Remove all starboard channels for this server
-        
-        Example: m!starboard-remove-all
-        """
-        # Remove all starboard channels
-        await self.db.set_starboard_catch_channel(ctx.guild.id, None)
-        await self.db.set_starboard_egg_channel(ctx.guild.id, None)
-        await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
-        await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
-        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
-        await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
-        await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
-        await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
-        
-        await ctx.reply("✅ All starboard channels have been removed", mention_author=False)
+        await ctx.reply(f"✅ All starboard channels set to {text_channel.mention}", mention_author=False)
     
     # Server starboard channels (admin only)
     @commands.command(name="starboard-catch")
     @commands.has_permissions(administrator=True)
-    async def starboard_catch_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_catch_command(self, ctx, channel: str = None):
         """Set the catch starboard channel for this server
         
         Example: m!starboard-catch #catches
-        To remove: m!starboard-catch remove
+        To remove: m!starboard-catch none
         """
-        if channel is None:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID. Use 'remove' to clear the channel.", mention_author=False)
+        if not channel:
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_catch_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Catch starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-catch-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_catch_remove_command(self, ctx):
-        """Remove the catch starboard channel for this server"""
-        await self.db.set_starboard_catch_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Catch starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_catch_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Catch starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_catch_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Catch starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-egg")
     @commands.has_permissions(administrator=True)
-    async def starboard_egg_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_egg_command(self, ctx, channel: str = None):
         """Set the egg hatch starboard channel for this server
         
         Example: m!starboard-egg #egg-hatches
-        To remove: m!starboard-egg-remove
+        To remove: m!starboard-egg none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_egg_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Egg starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-egg-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_egg_remove_command(self, ctx):
-        """Remove the egg starboard channel for this server"""
-        await self.db.set_starboard_egg_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Egg starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_egg_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Egg starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_egg_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Egg starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-unbox")
     @commands.has_permissions(administrator=True)
-    async def starboard_unbox_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_unbox_command(self, ctx, channel: str = None):
         """Set the unbox starboard channel for this server
         
         Example: m!starboard-unbox #unboxes
-        To remove: m!starboard-unbox-remove
+        To remove: m!starboard-unbox none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_unbox_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Unbox starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-unbox-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_unbox_remove_command(self, ctx):
-        """Remove the unbox starboard channel for this server"""
-        await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Unbox starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_unbox_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Unbox starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_unbox_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Unbox starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-shiny")
     @commands.has_permissions(administrator=True)
-    async def starboard_shiny_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_shiny_command(self, ctx, channel: str = None):
         """Set the shiny catch starboard channel for this server
         
         Example: m!starboard-shiny #shinies
-        To remove: m!starboard-shiny-remove
+        To remove: m!starboard-shiny none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_shiny_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Shiny catch starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-shiny-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_shiny_remove_command(self, ctx):
-        """Remove the shiny starboard channel for this server"""
-        await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Shiny starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_shiny_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Shiny starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_shiny_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Shiny catch starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-gigantamax")
     @commands.has_permissions(administrator=True)
-    async def starboard_gigantamax_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_gigantamax_command(self, ctx, channel: str = None):
         """Set the Gigantamax catch starboard channel for this server
         
         Example: m!starboard-gigantamax #gmax
-        To remove: m!starboard-gigantamax-remove
+        To remove: m!starboard-gigantamax none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Gigantamax starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-gigantamax-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_gigantamax_remove_command(self, ctx):
-        """Remove the Gigantamax starboard channel for this server"""
-        await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Gigantamax starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_gigantamax_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Gigantamax starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_gigantamax_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Gigantamax starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-highiv")
     @commands.has_permissions(administrator=True)
-    async def starboard_highiv_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_highiv_command(self, ctx, channel: str = None):
         """Set the high IV starboard channel for this server
         
         Example: m!starboard-highiv #high-ivs
-        To remove: m!starboard-highiv-remove
+        To remove: m!starboard-highiv none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_highiv_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ High IV starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-highiv-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_highiv_remove_command(self, ctx):
-        """Remove the high IV starboard channel for this server"""
-        await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
-        await ctx.reply("✅ High IV starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_highiv_channel(ctx.guild.id, None)
+            await ctx.reply("✅ High IV starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_highiv_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ High IV starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-lowiv")
     @commands.has_permissions(administrator=True)
-    async def starboard_lowiv_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_lowiv_command(self, ctx, channel: str = None):
         """Set the low IV starboard channel for this server
         
         Example: m!starboard-lowiv #low-ivs
-        To remove: m!starboard-lowiv-remove
+        To remove: m!starboard-lowiv none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_lowiv_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ Low IV starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-lowiv-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_lowiv_remove_command(self, ctx):
-        """Remove the low IV starboard channel for this server"""
-        await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
-        await ctx.reply("✅ Low IV starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_lowiv_channel(ctx.guild.id, None)
+            await ctx.reply("✅ Low IV starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_lowiv_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ Low IV starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     @commands.command(name="starboard-missingno")
     @commands.has_permissions(administrator=True)
-    async def starboard_missingno_command(self, ctx, channel: discord.TextChannel = None):
+    async def starboard_missingno_command(self, ctx, channel: str = None):
         """Set the MissingNo catch starboard channel for this server
         
         Example: m!starboard-missingno #missingno
-        To remove: m!starboard-missingno-remove
+        To remove: m!starboard-missingno none
         """
         if not channel:
-            await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
+            await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
             return
         
-        await self.db.set_starboard_missingno_channel(ctx.guild.id, channel.id)
-        await ctx.reply(f"✅ MissingNo starboard channel set to {channel.mention}", mention_author=False)
-    
-    @commands.command(name="starboard-missingno-remove")
-    @commands.has_permissions(administrator=True)
-    async def starboard_missingno_remove_command(self, ctx):
-        """Remove the MissingNo starboard channel for this server"""
-        await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
-        await ctx.reply("✅ MissingNo starboard channel removed", mention_author=False)
+        if channel.lower() == "none":
+            await self.db.set_starboard_missingno_channel(ctx.guild.id, None)
+            await ctx.reply("✅ MissingNo starboard channel removed", mention_author=False)
+            return
+        
+        try:
+            converter = commands.TextChannelConverter()
+            text_channel = await converter.convert(ctx, channel)
+            await self.db.set_starboard_missingno_channel(ctx.guild.id, text_channel.id)
+            await ctx.reply(f"✅ MissingNo starboard channel set to {text_channel.mention}", mention_author=False)
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid channel mention or ID.", mention_author=False)
     
     # Global starboard channels (bot owner only)
     @commands.command(name="global-starboard-catch")
