@@ -36,10 +36,10 @@ bot.predictor = None
 bot.http_session = None
 
 async def initialize_predictor():
-    """Initialize the predictor"""
+    """Initialize the predictor with dual model system"""
     try:
         bot.predictor = Prediction()
-        print("✅ Predictor initialized")
+        print("✅ Predictor initialized (dual model system)")
     except Exception as e:
         print(f"❌ Failed to initialize predictor: {e}")
 
@@ -82,15 +82,23 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     print(f"Bot prefix: {', '.join(BOT_PREFIX)}")
     
-    # Initialize components
+    # Initialize HTTP session first
     await initialize_http_session()
     
-    initialization_tasks = [
-        initialize_predictor(),
-        initialize_database()
-    ]
+    # Initialize predictor (needs http_session for model downloads)
+    await initialize_predictor()
     
-    await asyncio.gather(*initialization_tasks, return_exceptions=True)
+    # Initialize models after predictor is created
+    if bot.predictor and bot.http_session:
+        try:
+            print("Downloading and initializing prediction models...")
+            await bot.predictor.initialize_models(bot.http_session)
+            print("✅ Dual model system ready!")
+        except Exception as e:
+            print(f"❌ Failed to initialize models: {e}")
+    
+    # Initialize database
+    await initialize_database()
     
     # Load cogs
     cogs_to_load = [
@@ -131,6 +139,7 @@ async def on_ready():
         print(f"⚠️ Failed to load {failed_count} cogs")
     print(f"🌐 Serving {len(bot.guilds)} guilds")
     print(f"👥 Serving {sum(g.member_count for g in bot.guilds)} users")
+    print(f"🤖 Dual Model System: Primary (224x224) + Secondary (336x224)")
     print(f"{'='*50}\n")
     
     # Start keep-alive task
