@@ -2779,7 +2779,7 @@
     },
     "is_variant": true,
     "variant_of": "Articuno",
-    "rarity": "legendary"
+    "rarity": ["legendary","Regional"]
   },
   {
     "dex_number": 145,
@@ -2805,7 +2805,7 @@
     },
     "is_variant": true,
     "variant_of": "Zapdos",
-    "rarity": "legendary"
+    "rarity": ["legendary","Regional"]
   },
   {
     "dex_number": 146,
@@ -2831,7 +2831,7 @@
     },
     "is_variant": true,
     "variant_of": "Moltres",
-    "rarity": "legendary"
+    "rarity": ["legendary","Regional"]
   },
   {
     "dex_number": 147,
