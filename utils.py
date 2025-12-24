@@ -89,32 +89,37 @@ def find_pokemon_by_name_flexible(search_name: str, pokemon_data: List[Dict]) ->
 def get_pokemon_with_variants(pokemon_name: str, pokemon_data: List[Dict]) -> List[str]:
     """
     Get Pokemon and all its variants
-    
+
     Example:
         "Furfrou" -> ["Furfrou", "Pharaoh Trim Furfrou", "Debutante Trim Furfrou", ...]
     """
     base_pokemon = find_pokemon_by_name_flexible(pokemon_name, pokemon_data)
     if not base_pokemon:
         return []
-    
+
     base_name = base_pokemon['name']
     variants = [base_name]
-    
+
     # Find all variants of this Pokemon
     for pokemon in pokemon_data:
         if (pokemon.get('is_variant') and 
             pokemon.get('variant_of', '').lower() == base_name.lower()):
             variants.append(pokemon['name'])
-    
+
     return variants
 
 def is_rare_pokemon(pokemon: Dict) -> bool:
     """Check if Pokemon is Legendary, Mythical, or Ultra Beast"""
     if not pokemon:
         return False
-    
-    rarity = pokemon.get('rarity', '').lower()
-    return rarity in ['legendary', 'mythical', 'ultra beast']
+
+    rarity = pokemon.get('rarity', '')
+
+    # Handle both string and list
+    if isinstance(rarity, list):
+        return any(r.lower() in ['legendary', 'mythical', 'ultra beast'] for r in rarity)
+    else:
+        return rarity.lower() in ['legendary', 'mythical', 'ultra beast']
 
 def format_pokemon_prediction(name: str, confidence: str) -> str:
     """Format the Pokemon prediction output"""
@@ -136,7 +141,7 @@ async def get_image_url_from_message(message: discord.Message) -> Optional[str]:
         for attachment in message.attachments:
             if any(attachment.url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]):
                 return attachment.url
-    
+
     # Check embeds
     if message.embeds:
         embed = message.embeds[0]
@@ -144,7 +149,7 @@ async def get_image_url_from_message(message: discord.Message) -> Optional[str]:
             return embed.image.url
         elif embed.thumbnail and embed.thumbnail.url:
             return embed.thumbnail.url
-    
+
     return None
 
 def create_text_file(content: str, filename: str = "collection.txt") -> discord.File:
