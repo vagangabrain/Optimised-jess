@@ -106,6 +106,7 @@ async def on_ready():
         'cogs.shiny_hunt',
         'cogs.settings',
         'cogs.prediction',
+        'cogs.category',
         'cogs.starboard_settings',
         'cogs.starboard_catch',
         'cogs.starboard_egg',
