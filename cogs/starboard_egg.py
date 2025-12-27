@@ -279,14 +279,14 @@ class StarboardEgg(commands.Cog):
         
         return False
     
-    @commands.command(name="eggcheck")
+    @commands.command(name="eggcheck", aliases=["ec", "checkegg"])
     @commands.has_permissions(administrator=True)
     async def egg_check_command(self, ctx, *, input_data: str = None):
         """Manually check a Poketwo hatch message and send to starboard
         
         Usage:
-            m!eggcheck (reply to a message)
-            m!eggcheck <message_id>
+            p!eggcheck (reply to a message)
+            p!eggcheck <message_id>
         """
         original_message = None
         hatched_by_id = None
@@ -301,8 +301,8 @@ class StarboardEgg(commands.Cog):
                 await ctx.reply(
                     "Please provide a message ID or reply to a Poketwo hatch message.\n"
                     "Examples:\n"
-                    "`m!eggcheck 123456789012345678` (message ID)\n"
-                    "Or reply to a message with just `m!eggcheck`",
+                    "`p!eggcheck 123456789012345678` (message ID)\n"
+                    "Or reply to a message with just `p!eggcheck`",
                     mention_author=False
                 )
                 return
