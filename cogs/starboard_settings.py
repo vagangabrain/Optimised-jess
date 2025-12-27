@@ -20,8 +20,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_all_command(self, ctx, channel: str = None):
         """Set one channel for all starboard categories
         
-        Example: m!starboard-all #starboard
-        To remove all: m!starboard-all none
+        Example: p!starboard-all #starboard
+        To remove all: p!starboard-all none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove all.", mention_author=False)
@@ -67,8 +67,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_catch_command(self, ctx, channel: str = None):
         """Set the catch starboard channel for this server
         
-        Example: m!starboard-catch #catches
-        To remove: m!starboard-catch none
+        Example: p!starboard-catch #catches
+        To remove: p!starboard-catch none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -92,8 +92,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_egg_command(self, ctx, channel: str = None):
         """Set the egg hatch starboard channel for this server
         
-        Example: m!starboard-egg #egg-hatches
-        To remove: m!starboard-egg none
+        Example: p!starboard-egg #egg-hatches
+        To remove: p!starboard-egg none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -117,8 +117,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_unbox_command(self, ctx, channel: str = None):
         """Set the unbox starboard channel for this server
         
-        Example: m!starboard-unbox #unboxes
-        To remove: m!starboard-unbox none
+        Example: p!starboard-unbox #unboxes
+        To remove: p!starboard-unbox none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -142,8 +142,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_shiny_command(self, ctx, channel: str = None):
         """Set the shiny catch starboard channel for this server
         
-        Example: m!starboard-shiny #shinies
-        To remove: m!starboard-shiny none
+        Example: p!starboard-shiny #shinies
+        To remove: p!starboard-shiny none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -167,8 +167,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_gigantamax_command(self, ctx, channel: str = None):
         """Set the Gigantamax catch starboard channel for this server
         
-        Example: m!starboard-gigantamax #gmax
-        To remove: m!starboard-gigantamax none
+        Example: p!starboard-gigantamax #gmax
+        To remove: p!starboard-gigantamax none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -192,8 +192,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_highiv_command(self, ctx, channel: str = None):
         """Set the high IV starboard channel for this server
         
-        Example: m!starboard-highiv #high-ivs
-        To remove: m!starboard-highiv none
+        Example: p!starboard-highiv #high-ivs
+        To remove: p!starboard-highiv none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -217,8 +217,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_lowiv_command(self, ctx, channel: str = None):
         """Set the low IV starboard channel for this server
         
-        Example: m!starboard-lowiv #low-ivs
-        To remove: m!starboard-lowiv none
+        Example: p!starboard-lowiv #low-ivs
+        To remove: p!starboard-lowiv none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -242,8 +242,8 @@ class StarboardSettings(commands.Cog):
     async def starboard_missingno_command(self, ctx, channel: str = None):
         """Set the MissingNo catch starboard channel for this server
         
-        Example: m!starboard-missingno #missingno
-        To remove: m!starboard-missingno none
+        Example: p!starboard-missingno #missingno
+        To remove: p!starboard-missingno none
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel, provide a channel ID, or use 'none' to remove.", mention_author=False)
@@ -268,7 +268,7 @@ class StarboardSettings(commands.Cog):
     async def global_starboard_catch_command(self, ctx, channel: discord.TextChannel = None):
         """Set the global catch starboard channel (bot owner only)
         
-        Example: m!global-starboard-catch #global-catches
+        Example: p!global-starboard-catch #global-catches
         """
         if not channel:
             await ctx.reply("❌ Please mention a channel or provide a channel ID.", mention_author=False)
@@ -300,7 +300,7 @@ class StarboardSettings(commands.Cog):
         await ctx.reply(f"✅ Global unbox starboard channel set to {channel.mention}", mention_author=False)
     
     # View starboard settings
-    @commands.command(name="starboard-settings")
+    @commands.command(name="starboard-settings", aliases=["sbsettings", "starboard-config"])
     async def starboard_settings_command(self, ctx):
         """View current starboard channel settings for this server"""
         settings = await self.db.get_guild_settings(ctx.guild.id)
