@@ -75,7 +75,7 @@ class Collection(commands.Cog):
         if not collection:
             embed = discord.Embed(
                 title="📦 Your Collection",
-                description="Your collection is empty! Start adding Pokémon with `m!cl add <pokemon>`",
+                description="Your collection is empty! Start adding Pokémon with `p!cl add <pokemon>`",
                 color=EMBED_COLOR
             )
             return embed
@@ -106,32 +106,32 @@ class Collection(commands.Cog):
     async def collection_group(self, ctx):
         """Collection management commands"""
         if ctx.invoked_subcommand is None:
-            await ctx.reply("Usage: `m!cl [add/remove/clear/list/raw]`", mention_author=False)
+            await ctx.reply("Usage: `p!cl [add/remove/clear/list/raw]`", mention_author=False)
     
     @collection_group.command(name="add")
     async def collection_add(self, ctx, *, pokemon_names: str):
         """Add Pokemon to your collection
-        
+
         Examples:
-            m!cl add Pikachu
-            m!cl add Pikachu, Charizard, Mewtwo
-            m!cl add Furfrou all  (adds all Furfrou variants)
+            p!cl add Pikachu
+            p!cl add Pikachu, Charizard, Mewtwo
+            p!cl add Furfrou all  (adds all Furfrou variants)
         """
         names_list = [name.strip() for name in pokemon_names.split(",") if name.strip()]
-        
+
         if not names_list:
             await ctx.reply("No valid Pokemon names provided", mention_author=False)
             return
-        
+
         added_pokemon = []
         invalid_pokemon = []
-        
+
         for name in names_list:
             # Check if adding all variants
             if name.lower().endswith(" all"):
                 base_name = name[:-4].strip()
                 variants = get_pokemon_with_variants(base_name, self.pokemon_data)
-                
+
                 if variants:
                     added_pokemon.extend(variants)
                 else:
@@ -139,12 +139,12 @@ class Collection(commands.Cog):
             else:
                 # Single Pokemon
                 pokemon = find_pokemon_by_name_flexible(name, self.pokemon_data)
-                
+
                 if pokemon and pokemon.get('name'):
                     added_pokemon.append(pokemon['name'])
                 else:
                     invalid_pokemon.append(name)
-        
+
         if not added_pokemon:
             error_msg = "No valid Pokemon names found"
             if invalid_pokemon:
@@ -153,21 +153,37 @@ class Collection(commands.Cog):
                     error_msg += f" and {len(invalid_pokemon) - 10} more..."
             await ctx.reply(error_msg, mention_author=False)
             return
-        
+
         await self.db.add_pokemon_to_collection(ctx.author.id, ctx.guild.id, added_pokemon)
-        
-        # Format response
-        if len(added_pokemon) <= MAX_DISPLAY_ITEMS:
-            response = f"✅ Added {len(added_pokemon)} Pokemon: {', '.join(added_pokemon)}"
-        else:
-            response = f"✅ Added {len(added_pokemon)} Pokemon: {', '.join(added_pokemon[:MAX_DISPLAY_ITEMS])} and {len(added_pokemon) - MAX_DISPLAY_ITEMS} more..."
-        
+
+        # Format response with character limit safety
+        response = f"✅ Added {len(added_pokemon)} Pokémon"
+
+        # Try to show some pokemon names if possible
+        if len(added_pokemon) <= 5:
+            # Show all if 5 or fewer
+            pokemon_list = ", ".join(added_pokemon)
+            response += f": {pokemon_list}"
+        elif len(added_pokemon) <= 20:
+            # Show first few if between 6-20
+            pokemon_list = ", ".join(added_pokemon[:10])
+            response += f": {pokemon_list} and {len(added_pokemon) - 10} more"
+        # Otherwise just show count (for 21+)
+
+        # Add invalid pokemon info if any
         if invalid_pokemon:
-            if len(invalid_pokemon) <= 30:
-                response += f"\n❌ Invalid: {', '.join(invalid_pokemon)}"
+            invalid_text = f"\n❌ Invalid: "
+            if len(invalid_pokemon) <= 10:
+                invalid_text += ", ".join(invalid_pokemon)
             else:
-                response += f"\n❌ Invalid: {', '.join(invalid_pokemon[:30])} and {len(invalid_pokemon) - 30} more..."
-        
+                invalid_text += f"{', '.join(invalid_pokemon[:10])} and {len(invalid_pokemon) - 10} more"
+
+            # Check if adding invalid text would exceed Discord's limit (2000 chars)
+            if len(response) + len(invalid_text) < 1900:
+                response += invalid_text
+            else:
+                response += f"\n❌ {len(invalid_pokemon)} invalid Pokémon names"
+
         await ctx.reply(response, mention_author=False)
     
     @collection_group.command(name="remove")
@@ -175,8 +191,8 @@ class Collection(commands.Cog):
         """Remove Pokemon from your collection
         
         Examples:
-            m!cl remove Pikachu
-            m!cl remove Pikachu, Charizard
+            p!cl remove Pikachu
+            p!cl remove Pikachu, Charizard
         """
         names_list = [name.strip() for name in pokemon_names.split(",") if name.strip()]
         
