@@ -13,7 +13,7 @@ from typing import Optional, Tuple
 # GitHub raw content URLs for models
 # For private repos, you need a GitHub Personal Access Token
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Optional: for private repos
-MODEL_REPO_BASE = "https://raw.githubusercontent.com/teamrocket43434/jessmodel/main"
+MODEL_REPO_BASE = "https://raw.githubusercontent.com/teamrocket43434/poketwomodel/main"
 
 # Primary model (original)
 PRIMARY_ONNX_URL = f"{MODEL_REPO_BASE}/pokemon_cnn_v2.onnx"
