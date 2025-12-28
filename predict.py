@@ -149,6 +149,10 @@ class Prediction:
         self.secondary_class_names = None
         self.secondary_metadata = None
         self.models_initialized = False
+        # Rate limiting for Discord CDN
+        self._cdn_semaphore = asyncio.Semaphore(3)  # Max 3 concurrent Discord CDN requests
+        self._last_cdn_request = 0
+        self._cdn_min_interval = 0.1  # Minimum 100ms between requests
 
     async def initialize_models(self, session: aiohttp.ClientSession):
         """Download and initialize both models"""
@@ -206,40 +210,97 @@ class Prediction:
         """Generate cache key from URL"""
         return hashlib.md5(url.encode()).hexdigest()
 
+    async def _rate_limit_cdn_request(self):
+        """Apply rate limiting for Discord CDN requests"""
+        async with self._cdn_semaphore:
+            # Ensure minimum time between requests
+            now = time.time()
+            time_since_last = now - self._last_cdn_request
+            if time_since_last < self._cdn_min_interval:
+                await asyncio.sleep(self._cdn_min_interval - time_since_last)
+            self._last_cdn_request = time.time()
+
     async def preprocess_image(self, url: str, session: aiohttp.ClientSession, 
-                               width=224, height=224, max_retries=2):
-        """Async image preprocessing with configurable size and retry logic
+                               width=224, height=224, max_retries=4):
+        """Async image preprocessing with improved retry logic for Discord CDN
         
         Args:
             url: Image URL
             session: aiohttp session
             width: Target width (PIL uses width, height order)
             height: Target height
-            max_retries: Number of retry attempts for transient errors
+            max_retries: Number of retry attempts (increased to 4)
         """
-        last_error = None
+        is_discord_cdn = 'cdn.discordapp.com' in url or 'media.discordapp.net' in url
         
         for attempt in range(max_retries):
             try:
-                timeout = aiohttp.ClientTimeout(total=5, connect=2)
-                async with session.get(url, timeout=timeout) as response:
-                    if response.status != 200:
-                        # Retry on 404 errors as Discord URLs might be temporarily unavailable
-                        if response.status == 404 and attempt < max_retries - 1:
-                            await asyncio.sleep(0.5)
+                # Apply rate limiting for Discord CDN
+                if is_discord_cdn:
+                    await self._rate_limit_cdn_request()
+                
+                # Progressive timeout - longer for Discord CDN and later attempts
+                if is_discord_cdn:
+                    timeout_total = 15 + (attempt * 5)  # 15s, 20s, 25s, 30s
+                    timeout_connect = 5 + (attempt * 2)  # 5s, 7s, 9s, 11s
+                else:
+                    timeout_total = 10 + (attempt * 3)
+                    timeout_connect = 3 + attempt
+                
+                timeout = aiohttp.ClientTimeout(total=timeout_total, connect=timeout_connect)
+                
+                # Headers to avoid being blocked by Discord CDN
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                }
+                
+                async with session.get(url, timeout=timeout, headers=headers) as response:
+                    # Handle different error cases
+                    if response.status == 429:  # Rate limited
+                        retry_after = int(response.headers.get('Retry-After', 2))
+                        if attempt < max_retries - 1:
+                            print(f"[RATE-LIMIT] Waiting {retry_after}s before retry {attempt + 1}/{max_retries}")
+                            await asyncio.sleep(retry_after)
                             continue
+                        raise ValueError(f"Rate limited by Discord CDN after {max_retries} attempts")
+                    
+                    if response.status == 404:
+                        # For Discord CDN, retry a few times as URLs can be temporarily unavailable
+                        if is_discord_cdn and attempt < max_retries - 1:
+                            delay = 1.0 * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                            print(f"[404] Retry {attempt + 1}/{max_retries} after {delay}s delay")
+                            await asyncio.sleep(delay)
+                            continue
+                        raise ValueError(f"Image not found (404) - URL may be expired or deleted")
+                    
+                    if response.status in [502, 503, 504]:  # Server errors - retry
+                        if attempt < max_retries - 1:
+                            delay = 2.0 * (2 ** attempt)  # 2s, 4s, 8s
+                            print(f"[{response.status}] Server error, retry {attempt + 1}/{max_retries} after {delay}s")
+                            await asyncio.sleep(delay)
+                            continue
+                        raise ValueError(f"Server error {response.status} after {max_retries} attempts")
+                    
+                    if response.status != 200:
                         raise ValueError(f"HTTP {response.status} error fetching image")
                     
                     image_data = await response.read()
+                
+                # Validate we got actual image data
+                if len(image_data) < 100:  # Too small to be a valid image
+                    raise ValueError("Received invalid/empty image data")
                 
                 # Try to process the image
                 try:
                     image = Image.open(io.BytesIO(image_data)).convert("RGB")
                 except Exception as e:
-                    raise ValueError(f"Failed to process image: {e}")
+                    raise ValueError(f"Failed to process image data: {e}")
 
                 # Resize with high quality resampling
-                # PIL.Image.resize takes (width, height) order
                 image = image.resize((width, height), Image.LANCZOS)
 
                 # Convert to numpy array and normalize
@@ -254,19 +315,42 @@ class Prediction:
                 image = np.transpose(image, (2, 0, 1))  # CHW
                 image = np.expand_dims(image, axis=0).astype(np.float32)  # NCHW
 
+                # Success - log if we had to retry
+                if attempt > 0:
+                    print(f"[SUCCESS] Image loaded after {attempt + 1} attempts")
+                
                 return image
             
-            except Exception as e:
-                last_error = e
-                # Retry on transient errors
+            except asyncio.TimeoutError:
                 if attempt < max_retries - 1:
-                    await asyncio.sleep(0.5)
+                    delay = 1.5 * (2 ** attempt)  # Exponential backoff
+                    print(f"[TIMEOUT] Retry {attempt + 1}/{max_retries} after {delay}s")
+                    await asyncio.sleep(delay)
                     continue
-                # On final attempt, raise the error
-                raise ValueError(f"Failed to load image from URL: {e}")
+                raise ValueError(f"Timeout fetching image after {max_retries} attempts")
+            
+            except aiohttp.ClientError as e:
+                if attempt < max_retries - 1:
+                    delay = 1.5 * (2 ** attempt)
+                    print(f"[CLIENT-ERROR] {str(e)[:50]}, retry {attempt + 1}/{max_retries} after {delay}s")
+                    await asyncio.sleep(delay)
+                    continue
+                raise ValueError(f"Network error after {max_retries} attempts: {e}")
+            
+            except ValueError:
+                # Re-raise ValueError as-is (already formatted)
+                raise
+            
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = 1.0 * (2 ** attempt)
+                    print(f"[ERROR] {str(e)[:50]}, retry {attempt + 1}/{max_retries} after {delay}s")
+                    await asyncio.sleep(delay)
+                    continue
+                raise ValueError(f"Failed to load image: {e}")
         
-        # This should never be reached, but just in case
-        raise ValueError(f"Failed to load image from URL: {last_error}")
+        # Should never reach here
+        raise ValueError(f"Failed to load image after {max_retries} attempts")
 
     def softmax(self, x):
         """Vectorized softmax computation"""
