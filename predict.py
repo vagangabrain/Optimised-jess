@@ -228,7 +228,7 @@ class Prediction:
             self._last_cdn_request = time.time()
 
     async def preprocess_image(self, url: str, session: aiohttp.ClientSession, 
-                               width=224, height=224, max_retries=3):  # REDUCED retries
+                               width=224, height=224, max_retries=4):  # Back to 4 retries
         """ULTRA MEMORY OPTIMIZED: Async image preprocessing"""
         is_discord_cdn = 'cdn.discordapp.com' in url or 'media.discordapp.net' in url
         
@@ -239,10 +239,10 @@ class Prediction:
                     await self._rate_limit_cdn_request()
                 
                 if is_discord_cdn:
-                    timeout_total = 12 + (attempt * 4)  # Shorter timeouts
-                    timeout_connect = 4 + (attempt * 2)
+                    timeout_total = 15 + (attempt * 5)  # Restored timeouts
+                    timeout_connect = 5 + (attempt * 2)
                 else:
-                    timeout_total = 8 + (attempt * 2)
+                    timeout_total = 10 + (attempt * 3)
                     timeout_connect = 3 + attempt
                 
                 timeout = aiohttp.ClientTimeout(total=timeout_total, connect=timeout_connect)
