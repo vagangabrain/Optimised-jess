@@ -456,7 +456,7 @@ class Prediction(commands.Cog):
                                                 formatted_output += f"\n{ping_info}"
 
                                             # Send prediction in spawn channel
-                                            await message.reply(formatted_output)
+                                            await message.channel.send(formatted_output, reference=message, mention_author=False)
 
                                         # If low confidence, ALSO send to low prediction channel
                                         if confidence_value < PREDICTION_CONFIDENCE:
