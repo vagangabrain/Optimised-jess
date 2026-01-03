@@ -164,6 +164,9 @@ class Prediction(commands.Cog):
         try:
             # Use async prediction
             name, confidence = await self.predictor.predict(image_url, self.http_session)
+            # ADD THIS: Increment prediction counter
+            if hasattr(self.bot, 'prediction_count'):
+                self.bot.prediction_count += 1
 
             if not name or not confidence:
                 return "Could not predict Pokemon from the provided image."
