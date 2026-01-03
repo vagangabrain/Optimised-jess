@@ -339,6 +339,9 @@ class Prediction(commands.Cog):
                         name, confidence, model_used = cached_result
                     else:
                         name, confidence = await self.predictor.predict(image_url, self.http_session)
+
+                        if hasattr(self.bot, 'prediction_count'):
+                            self.bot.prediction_count += 1
                         # Get the model used from the last prediction
                         cached_result = self.predictor.cache.get(cache_key)
                         model_used = cached_result[2] if cached_result else "unknown"
@@ -410,6 +413,8 @@ class Prediction(commands.Cog):
                                     name, confidence, model_used = cached_result
                                 else:
                                     name, confidence = await self.predictor.predict(image_url, self.http_session)
+                                    if hasattr(self.bot, 'prediction_count'):
+                                        self.bot.prediction_count += 1
                                     # Get the model used from the last prediction
                                     cached_result = self.predictor.cache.get(cache_key)
                                     model_used = cached_result[2] if cached_result else "unknown"
