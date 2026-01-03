@@ -59,7 +59,7 @@ async def initialize_http_session():
     """Initialize aiohttp session"""
     timeout = aiohttp.ClientTimeout(total=10, connect=3)
     connector = aiohttp.TCPConnector(
-        limit=100,
+        limit=50,
         limit_per_host=10,
         keepalive_timeout=30,
         enable_cleanup_closed=True
