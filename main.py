@@ -3,6 +3,8 @@ import os
 import discord
 import asyncio
 import aiohttp
+import psutil  # ADD THIS
+import gc      # ADD THIS
 from discord.ext import commands
 from database import Database
 from predict import Prediction
@@ -34,6 +36,10 @@ bot = commands.Bot(
 bot.db = None
 bot.predictor = None
 bot.http_session = None
+
+# ADD THIS: Memory tracking
+bot.process = psutil.Process(os.getpid())
+bot.prediction_count = 0
 
 async def initialize_predictor():
     """Initialize the predictor with dual model system"""
@@ -77,10 +83,44 @@ async def keep_alive():
         except Exception:
             pass
 
+# ADD THIS: Memory monitoring function
+async def memory_monitor():
+    """Monitor and log memory usage periodically"""
+    await asyncio.sleep(10)  # Wait for bot to fully start
+    
+    while True:
+        try:
+            mem_info = bot.process.memory_info()
+            mem_mb = mem_info.rss / 1024 / 1024
+            
+            # Log every minute
+            print(f"[MEMORY] Usage: {mem_mb:.1f} MB | Predictions: {bot.prediction_count}")
+            
+            # Force aggressive GC if memory > 400MB
+            if mem_mb > 400:
+                print(f"[MEMORY] ⚠️ High usage ({mem_mb:.1f} MB), forcing aggressive GC...")
+                gc.collect()
+                await asyncio.sleep(1)  # Give GC time to work
+                
+                new_mem_info = bot.process.memory_info()
+                new_mem_mb = new_mem_info.rss / 1024 / 1024
+                freed = mem_mb - new_mem_mb
+                print(f"[MEMORY] After GC: {new_mem_mb:.1f} MB (freed {freed:.1f} MB)")
+            
+            await asyncio.sleep(60)  # Check every minute
+            
+        except Exception as e:
+            print(f"[MEMORY] Monitor error: {e}")
+            await asyncio.sleep(60)
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     print(f"Bot prefix: {', '.join(BOT_PREFIX)}")
+    
+    # Log initial memory
+    initial_mem = bot.process.memory_info().rss / 1024 / 1024
+    print(f"[MEMORY] Initial: {initial_mem:.1f} MB")
     
     # Initialize HTTP session first
     await initialize_http_session()
@@ -94,6 +134,11 @@ async def on_ready():
             print("Downloading and initializing prediction models...")
             await bot.predictor.initialize_models(bot.http_session)
             print("✅ Dual model system ready!")
+            
+            # Log memory after model loading
+            post_model_mem = bot.process.memory_info().rss / 1024 / 1024
+            print(f"[MEMORY] After models loaded: {post_model_mem:.1f} MB")
+            
         except Exception as e:
             print(f"❌ Failed to initialize models: {e}")
     
@@ -145,6 +190,9 @@ async def on_ready():
     
     # Start keep-alive task
     asyncio.create_task(keep_alive())
+    
+    # ADD THIS: Start memory monitor
+    asyncio.create_task(memory_monitor())
 
 @bot.event
 async def on_message_edit(before, after):
