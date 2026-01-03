@@ -479,8 +479,6 @@ class Prediction(commands.Cog):
 
                                                     await low_channel.send(embed=embed, view=view)
 
-                                                print(f"Low confidence prediction: {name} ({confidence}) in {message.guild.name}")
-
                                         # Log to secondary model channel if secondary model was used
                                         await self.log_secondary_model_prediction(name, confidence, model_used, message, image_url)
 
