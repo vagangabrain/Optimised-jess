@@ -8,7 +8,7 @@ import json
 import time
 import hashlib
 import asyncio
-import gc  # ADD THIS
+import gc
 from typing import Optional, Tuple
 
 # GitHub raw content URLs for models
@@ -30,8 +30,8 @@ SECONDARY_METADATA_PATH = os.path.join(CACHE_DIR, "model_metadata.json")
 
 
 class PredictionCache:
-    """Memory-efficient cache for predictions"""
-    def __init__(self, max_size=500, ttl_seconds=1800):  # REDUCED: 500 items, 30min TTL
+    """Ultra-lightweight cache - ONLY stores final results"""
+    def __init__(self, max_size=200, ttl_seconds=900):  # REDUCED: 200 items, 15min TTL
         self.cache = {}
         self.timestamps = {}
         self.max_size = max_size
@@ -49,9 +49,9 @@ class PredictionCache:
             self.cache.pop(key, None)
             self.timestamps.pop(key, None)
         
-        # Force GC every 50 cleanups
+        # Force GC every 20 cleanups
         self._cleanup_counter += 1
-        if self._cleanup_counter >= 50:
+        if self._cleanup_counter >= 20:
             gc.collect()
             self._cleanup_counter = 0
 
@@ -68,16 +68,17 @@ class PredictionCache:
         return None
 
     def set(self, key: str, value: Tuple[str, str, str]):
-        """Cache a prediction"""
+        """Cache a prediction - ONLY the result tuple"""
         self._cleanup_expired()
 
         if len(self.cache) >= self.max_size:
-            # Remove 10% of oldest entries when full
+            # Remove 20% of oldest entries when full
             sorted_keys = sorted(self.timestamps.items(), key=lambda x: x[1])
-            remove_count = max(1, self.max_size // 10)
+            remove_count = max(1, self.max_size // 5)
             for old_key, _ in sorted_keys[:remove_count]:
                 self.cache.pop(old_key, None)
                 self.timestamps.pop(old_key, None)
+            gc.collect()  # Force GC after bulk removal
 
         self.cache[key] = value
         self.timestamps[key] = time.time()
@@ -156,7 +157,7 @@ class Prediction:
         self._cdn_semaphore = asyncio.Semaphore(3)
         self._last_cdn_request = 0
         self._cdn_min_interval = 0.1
-        self._prediction_counter = 0  # ADD THIS: Track predictions for GC
+        self._prediction_counter = 0
 
     async def initialize_models(self, session: aiohttp.ClientSession):
         """Download and initialize both models - ONLY ONCE"""
@@ -183,14 +184,14 @@ class Prediction:
             self.secondary_metadata = json.load(f)
             self.secondary_class_names = self.secondary_metadata["class_names"]
         
-        # CRITICAL: Optimize ONNX session options
+        # CRITICAL: Ultra-minimal ONNX session options
         sess_opts = ort.SessionOptions()
-        sess_opts.intra_op_num_threads = 2  # REDUCED from 4
+        sess_opts.intra_op_num_threads = 1  # REDUCED to 1 thread
         sess_opts.inter_op_num_threads = 1
         sess_opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-        sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        sess_opts.enable_mem_pattern = False  # ADD THIS: Disable memory pattern
-        sess_opts.enable_cpu_mem_arena = False  # ADD THIS: Disable memory arena
+        sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC  # REDUCED optimization
+        sess_opts.enable_mem_pattern = False
+        sess_opts.enable_cpu_mem_arena = False
         providers = ["CPUExecutionProvider"]
         
         # Initialize models
@@ -227,20 +228,21 @@ class Prediction:
             self._last_cdn_request = time.time()
 
     async def preprocess_image(self, url: str, session: aiohttp.ClientSession, 
-                               width=224, height=224, max_retries=4):
-        """MEMORY OPTIMIZED: Async image preprocessing"""
+                               width=224, height=224, max_retries=3):  # REDUCED retries
+        """ULTRA MEMORY OPTIMIZED: Async image preprocessing"""
         is_discord_cdn = 'cdn.discordapp.com' in url or 'media.discordapp.net' in url
         
         for attempt in range(max_retries):
+            image_data = None  # Explicitly track for cleanup
             try:
                 if is_discord_cdn:
                     await self._rate_limit_cdn_request()
                 
                 if is_discord_cdn:
-                    timeout_total = 15 + (attempt * 5)
-                    timeout_connect = 5 + (attempt * 2)
+                    timeout_total = 12 + (attempt * 4)  # Shorter timeouts
+                    timeout_connect = 4 + (attempt * 2)
                 else:
-                    timeout_total = 10 + (attempt * 3)
+                    timeout_total = 8 + (attempt * 2)
                     timeout_connect = 3 + attempt
                 
                 timeout = aiohttp.ClientTimeout(total=timeout_total, connect=timeout_connect)
@@ -257,89 +259,83 @@ class Prediction:
                     if response.status == 429:
                         retry_after = int(response.headers.get('Retry-After', 2))
                         if attempt < max_retries - 1:
-                            print(f"[RATE-LIMIT] Waiting {retry_after}s before retry {attempt + 1}/{max_retries}")
                             await asyncio.sleep(retry_after)
                             continue
-                        raise ValueError(f"Rate limited by Discord CDN after {max_retries} attempts")
+                        raise ValueError(f"Rate limited by Discord CDN")
                     
                     if response.status == 404:
                         if is_discord_cdn and attempt < max_retries - 1:
-                            delay = 1.0 * (2 ** attempt)
-                            print(f"[404] Retry {attempt + 1}/{max_retries} after {delay}s delay")
-                            await asyncio.sleep(delay)
+                            await asyncio.sleep(1.0 * (2 ** attempt))
                             continue
-                        raise ValueError(f"Image not found (404) - URL may be expired or deleted")
+                        raise ValueError(f"Image not found (404)")
                     
                     if response.status in [502, 503, 504]:
                         if attempt < max_retries - 1:
-                            delay = 2.0 * (2 ** attempt)
-                            print(f"[{response.status}] Server error, retry {attempt + 1}/{max_retries} after {delay}s")
-                            await asyncio.sleep(delay)
+                            await asyncio.sleep(2.0 * (2 ** attempt))
                             continue
-                        raise ValueError(f"Server error {response.status} after {max_retries} attempts")
+                        raise ValueError(f"Server error {response.status}")
                     
                     if response.status != 200:
-                        raise ValueError(f"HTTP {response.status} error fetching image")
+                        raise ValueError(f"HTTP {response.status} error")
                     
                     image_data = await response.read()
                 
                 if len(image_data) < 100:
-                    raise ValueError("Received invalid/empty image data")
+                    raise ValueError("Invalid/empty image data")
                 
-                try:
-                    # CRITICAL: Use context manager to ensure cleanup
-                    with Image.open(io.BytesIO(image_data)) as img:
-                        img = img.convert("RGB")
-                        img = img.resize((width, height), Image.LANCZOS)
-                        
-                        # Convert to numpy IMMEDIATELY and close PIL image
-                        image_array = np.array(img, dtype=np.float32)
-                    
-                    # Clear image_data from memory
-                    del image_data
-                    
-                except Exception as e:
-                    raise ValueError(f"Failed to process image data: {e}")
-
-                # Normalize
-                image_array = image_array / 255.0
+                # CRITICAL: Process and immediately discard
+                img = Image.open(io.BytesIO(image_data))
+                img = img.convert("RGB")
+                img = img.resize((width, height), Image.LANCZOS)
+                
+                # Convert to numpy IMMEDIATELY
+                image_array = np.array(img, dtype=np.float32)
+                
+                # CRITICAL: Close and delete everything
+                img.close()
+                del img
+                del image_data
+                image_data = None
+                
+                # Normalize in-place to save memory
+                image_array /= 255.0
                 mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
                 std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-                image_array = (image_array - mean) / std
+                image_array -= mean
+                image_array /= std
 
-                # Convert to CHW format and add batch dimension
+                # Convert to CHW format
                 image_array = np.transpose(image_array, (2, 0, 1))
-                image_array = np.expand_dims(image_array, axis=0).astype(np.float32)
+                image_array = np.expand_dims(image_array, axis=0)
 
-                if attempt > 0:
-                    print(f"[SUCCESS] Image loaded after {attempt + 1} attempts")
-                
                 return image_array
             
             except asyncio.TimeoutError:
+                if image_data:
+                    del image_data
                 if attempt < max_retries - 1:
-                    delay = 1.5 * (2 ** attempt)
-                    print(f"[TIMEOUT] Retry {attempt + 1}/{max_retries} after {delay}s")
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(1.0 * (2 ** attempt))
                     continue
-                raise ValueError(f"Timeout fetching image after {max_retries} attempts")
+                raise ValueError(f"Timeout fetching image")
             
             except aiohttp.ClientError as e:
+                if image_data:
+                    del image_data
                 if attempt < max_retries - 1:
-                    delay = 1.5 * (2 ** attempt)
-                    print(f"[CLIENT-ERROR] {str(e)[:50]}, retry {attempt + 1}/{max_retries} after {delay}s")
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(1.0 * (2 ** attempt))
                     continue
-                raise ValueError(f"Network error after {max_retries} attempts: {e}")
+                raise ValueError(f"Network error: {e}")
             
             except ValueError:
+                if image_data:
+                    del image_data
                 raise
             
             except Exception as e:
+                if image_data:
+                    del image_data
                 if attempt < max_retries - 1:
-                    delay = 1.0 * (2 ** attempt)
-                    print(f"[ERROR] {str(e)[:50]}, retry {attempt + 1}/{max_retries} after {delay}s")
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(0.5 * (2 ** attempt))
                     continue
                 raise ValueError(f"Failed to load image: {e}")
         
@@ -363,14 +359,17 @@ class Prediction:
 
         name = class_names[pred_idx] if pred_idx < len(class_names) else f"unknown_{pred_idx}"
         
-        # CRITICAL: Clear outputs to free memory
-        del outputs, logits, probabilities
+        # CRITICAL: Aggressively delete everything
+        del outputs
+        del logits
+        del probabilities
+        del inputs
         
         return name, prob
 
     async def predict(self, url: str, session: aiohttp.ClientSession = None) -> Tuple[str, str]:
         """
-        MEMORY OPTIMIZED: Async prediction with dual model fallback system
+        ULTRA MEMORY OPTIMIZED: Async prediction with dual model fallback
         """
         # Check cache first
         cache_key = self._generate_cache_key(url)
@@ -387,19 +386,23 @@ class Prediction:
         if not self.models_initialized:
             await self.initialize_models(session)
 
+        primary_image = None
+        secondary_image = None
+        
         try:
-            # Preprocess image for primary model (224x224)
+            # Preprocess image for primary model
             primary_image = await self.preprocess_image(url, session, width=224, height=224)
             
-            # Run primary model prediction
+            # Run primary model
             primary_name, primary_prob = await self.predict_with_model(
                 primary_image, 
                 self.primary_session, 
                 self.primary_class_names
             )
             
-            # CRITICAL: Delete primary image immediately after use
+            # CRITICAL: Delete immediately
             del primary_image
+            primary_image = None
             
             primary_confidence_pct = primary_prob * 100
             
@@ -409,15 +412,15 @@ class Prediction:
                 result = (primary_name, confidence, "primary")
                 self.cache.set(cache_key, result)
                 
-                # Increment prediction counter and trigger GC periodically
+                # GC every 10 predictions
                 self._prediction_counter += 1
-                if self._prediction_counter >= 20:  # Every 20 predictions
+                if self._prediction_counter >= 10:
                     gc.collect()
                     self._prediction_counter = 0
                 
                 return primary_name, confidence
             
-            # Primary confidence < 85%, try secondary model
+            # Try secondary model
             secondary_width = self.secondary_metadata["image_width"]
             secondary_height = self.secondary_metadata["image_height"]
             secondary_image = await self.preprocess_image(
@@ -427,15 +430,16 @@ class Prediction:
                 height=secondary_height
             )
             
-            # Run secondary model prediction
+            # Run secondary model
             secondary_name, secondary_prob = await self.predict_with_model(
                 secondary_image,
                 self.secondary_session,
                 self.secondary_class_names
             )
             
-            # CRITICAL: Delete secondary image immediately after use
+            # CRITICAL: Delete immediately
             del secondary_image
+            secondary_image = None
             
             secondary_confidence_pct = secondary_prob * 100
             
@@ -445,31 +449,39 @@ class Prediction:
                 result = (secondary_name, confidence, "secondary")
                 self.cache.set(cache_key, result)
                 
-                # Trigger GC
                 self._prediction_counter += 1
-                if self._prediction_counter >= 20:
+                if self._prediction_counter >= 10:
                     gc.collect()
                     self._prediction_counter = 0
                 
                 return secondary_name, confidence
             
-            # Secondary confidence < 90%, fallback to primary
+            # Fallback to primary
             confidence = f"{primary_confidence_pct:.2f}%"
             result = (primary_name, confidence, "primary_fallback")
             self.cache.set(cache_key, result)
             
-            # Trigger GC
             self._prediction_counter += 1
-            if self._prediction_counter >= 20:
+            if self._prediction_counter >= 10:
                 gc.collect()
                 self._prediction_counter = 0
             
             return primary_name, confidence
             
         except Exception as e:
-            # Ensure cleanup even on error
+            # Ensure cleanup on error
+            if primary_image is not None:
+                del primary_image
+            if secondary_image is not None:
+                del secondary_image
             gc.collect()
             raise
+        finally:
+            # Extra safety cleanup
+            if primary_image is not None:
+                del primary_image
+            if secondary_image is not None:
+                del secondary_image
 
 
 def main():
